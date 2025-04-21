@@ -1,0 +1,24 @@
+[project]
+name = "copilot_chat"
+version = "0.1.0"
+description = "Reverse-engineered Github Copilot Chat API"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "flask>=3.1.0",
+    "flask-cors>=5.0.1",
+    "requests>=2.32.3",
+]
+
+[project.scripts]
+copilot_chat = "copilot_chat.server:run_server"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "copilot_chat"
+version = "0.1.0"
+description = "Reverse-engineered Github Copilot Chat API"
+readme = "README.md"
