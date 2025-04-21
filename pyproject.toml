@@ -5,6 +5,7 @@ description = "Reverse-engineered Github Copilot Chat API"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "chardet>=5.2.0",
     "flask>=3.1.0",
     "flask-cors>=5.0.1",
     "requests>=2.32.3",

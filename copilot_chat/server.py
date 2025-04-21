@@ -93,7 +93,7 @@ def generate():
         
         body["stream"] = False
         
-        result = api.generate(body)
+        result = api.generate(body) # returns str
         return jsonify({
             "content": result,
             "object": "text.completion"
