@@ -11,12 +11,12 @@ TOKENS_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "tokens.j
 
 api_instance = None
 
-def get_api():
+def get_api(token_file: str=TOKENS_FILE):
     """Load tokens from file and initialize the CopilotAPI instance"""
     global api_instance
     
     try:
-        with open(TOKENS_FILE, "r") as f:
+        with open(token_file, "r") as f:
             tokens = json.load(f)
             
         gh_token = tokens.get("gh_token")
