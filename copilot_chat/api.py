@@ -6,9 +6,10 @@ import requests
 from datetime import datetime
 from enum import Enum
 from dataclasses import dataclass
-from typing import List, Any, Optional, TypeVar, Callable, Type, cast, Literal, Generator
+from typing import List, Any, Optional, TypeVar, Callable, Type, cast, Literal, Generator, AsyncGenerator
 import json
 import uuid
+import aiohttp
 
 
 T = TypeVar("T")
@@ -477,3 +478,86 @@ class CopilotAPI:
                 continue
             res += chunk
         return res
+
+    async def async_chat(self, body: dict) -> AsyncGenerator[str, None]:
+        """
+        Send a chat request and stream the response asynchronously.
+        
+        Returns an async generator that yields chunks of the response as they arrive.
+        Each chunk contains a delta with the incremental content.
+        """
+        url = "https://api.individual.githubcopilot.com/chat/completions"
+        body["stream"] = True 
+        payload = json.dumps(body)
+        headers = {
+            "host": "api.individual.githubcopilot.com",
+            "connection": "keep-alive",
+            "authorization": f"Bearer {self.authorization}",
+            "content-type": "application/json",
+            "copilot-integration-id": "vscode-chat",
+            "editor-plugin-version": "copilot-chat/0.26.5",
+            "editor-version": "vscode/1.99.3",
+            "openai-intent": "conversation-panel",
+            "user-agent": "GitHubCopilotChat/0.26.5",
+            "vscode-machineid": self.vscode_machine,
+            "vscode-sessionid": self.vscode_session,
+            "x-github-api-version": "2025-04-01",
+            "x-initiator": "agent",
+            "x-interaction-id": str(uuid.uuid4()),
+            "x-interaction-type": "conversation-panel",
+            "x-request-id": str(uuid.uuid4()),
+            "x-vscode-user-agent-library-version": "electron-fetch",
+            "sec-fetch-site": "none",
+            "sec-fetch-mode": "no-cors",
+            "sec-fetch-dest": "empty",
+            "accept-encoding": "gzip, deflate, br, zstd",
+        }
+    
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, headers=headers, data=payload) as response:
+                response.raise_for_status()
+                
+                buffer = ""
+                async for chunk in response.content.iter_any():
+                    buffer += chunk.decode('utf-8')
+                    lines = buffer.split('\n')
+                    
+                    if len(lines) > 1:
+                        for line in lines[:-1]:
+                            if not line.strip():
+                                continue
+                                
+                            if line.startswith('data: '):
+                                line = line[6:]
+                                
+                            if line == '[DONE]':
+                                return
+                                
+                            try:
+                                data = json.loads(line)
+                                if len(data['choices']) == 0:
+                                    continue
+                                content = data['choices'][0].get("delta", {}).get("content", "")
+                                if content:
+                                    yield content
+                            except json.JSONDecodeError:
+                                print(f"Error parsing JSON: {line}")
+                                continue
+                        
+                        buffer = lines[-1]
+
+    async def async_generate(self, body: dict) -> str:
+        """
+        Asynchronously generate a complete response from the Copilot Chat API.
+        
+        Args:
+            body: The request body to send to the API
+            
+        Returns:
+            The complete text response from the API
+        """
+        res = ""
+        async for chunk in self.async_chat(body):
+            res += chunk
+        return res
+
