@@ -382,10 +382,19 @@ class CopilotAPI:
         self.token_expires_at = datetime.fromtimestamp(r.json().get("expires_at"))
         print(f"Token expires at: {self.token_expires_at}")
 
+    def _ensure_valid_token(self) -> None:
+        """
+        Ensures the token is valid and refreshes it if expired.
+        """
+        if not self.token_expires_at or datetime.now() >= self.token_expires_at:
+            print("Token expired or not set. Fetching a new token...")
+            self._fetch_auth()
+
     def models(self) -> List[Model]:
         """
         Fetches the models available in the Copilot Chat API.
         """
+        self._ensure_valid_token()
         url = "https://api.individual.githubcopilot.com/models"
 
         payload = {}
@@ -421,6 +430,7 @@ class CopilotAPI:
         Returns a generator that yields chunks of the response as they arrive.
         Each chunk contains a delta with the incremental content.
         """
+        self._ensure_valid_token()
         url = "https://api.individual.githubcopilot.com/chat/completions"
         body["stream"] = True 
         payload = json.dumps(body)
@@ -486,6 +496,7 @@ class CopilotAPI:
         Returns an async generator that yields chunks of the response as they arrive.
         Each chunk contains a delta with the incremental content.
         """
+        self._ensure_valid_token()
         url = "https://api.individual.githubcopilot.com/chat/completions"
         body["stream"] = True 
         payload = json.dumps(body)
